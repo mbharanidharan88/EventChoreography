@@ -1,0 +1,37 @@
+#See https://aka.ms/containerfastmode to understand how Visual Studio uses this Dockerfile to build your images for faster debugging.
+
+FROM mcr.microsoft.com/dotnet/aspnet:5.0 AS base
+WORKDIR /app
+EXPOSE 5000
+ENV ASPNETCORE_URLS=http://+:5000
+# ENV ASPNETCORE_ENVIRONMENT=development
+
+FROM mcr.microsoft.com/dotnet/sdk:5.0 AS build
+WORKDIR /src
+COPY ["Basket.API/Basket.API.csproj", "Basket.API/"]
+COPY ["EventBus.Messages/EventBus.Messages.csproj", "EventBus.Messages/"]
+RUN dotnet restore "Basket.API/Basket.API.csproj"
+COPY . .
+WORKDIR "/src/Basket.API"
+RUN dotnet build "Basket.API.csproj" -c Release -o /app/build
+
+FROM build AS publish
+RUN dotnet publish "Basket.API.csproj" -c Release -o /app/publish
+
+FROM base AS final
+WORKDIR /app
+COPY --from=publish /app/publish .
+ENTRYPOINT ["dotnet", "Basket.API.dll"]
+
+
+# FROM mcr.microsoft.com/dotnet/sdk:5.0-buster-slim as build
+# ENV DOTNET_USE_POLLING_FILE_WATCHER 1
+
+# WORKDIR /app
+
+
+# COPY ["Basket.API/Basket.API.csproj", "Basket.API/"]
+# COPY ["EventBus.Messages/EventBus.Messages.csproj", "EventBus.Messages/"]
+# RUN dotnet restore "Basket.API/Basket.API.csproj"
+
+# ENTRYPOINT [ "dotnet", "watch", "run", "--urls", "http://+:8080", "--project","Basket.API/Basket.API.csproj"]
